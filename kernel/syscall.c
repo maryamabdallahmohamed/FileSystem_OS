@@ -5,7 +5,14 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "syscall.h"
-#include "defs.h"
+#include "defs.h"       // This pulls in all string function declarations
+#include "stat.h"
+#include "fs.h"
+#include "sleeplock.h"
+#include "file.h"
+#include "fcntl.h"
+#include "buf.h"
+
 
 // Fetch the uint64 at addr from the current process.
 int
@@ -101,6 +108,10 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
+extern uint64 sys_snaplist(void);
+extern uint64 sys_snapcreate(void);
+
+
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -126,6 +137,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_snaplist] sys_snaplist,
+[SYS_snapcreate]  sys_snapcreate,
 };
 
 void
@@ -145,3 +158,5 @@ syscall(void)
     p->trapframe->a0 = -1;
   }
 }
+
+

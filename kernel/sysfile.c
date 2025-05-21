@@ -16,6 +16,7 @@
 #include "file.h"
 #include "fcntl.h"
 
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -185,8 +186,7 @@ isdirempty(struct inode *dp)
   return 1;
 }
 
-uint64
-sys_unlink(void)
+uint64 sys_unlink(void)
 {
   struct inode *ip, *dp;
   struct dirent de;
@@ -502,4 +502,84 @@ sys_pipe(void)
     return -1;
   }
   return 0;
+}
+
+uint64
+sys_snaplist(void)
+{
+  char path[MAXPATH];
+  struct inode *dp;
+  struct dirent de;
+  uint off;
+
+  if(argstr(0, path, sizeof(path)) < 0)
+    return -1;
+
+  dp = namei(path);
+  if(dp == 0)
+    return -1;
+  ilock(dp);
+
+  printf("Snapshot files in %s:\n", path);
+  for(off = 0; off < dp->size; off += sizeof(de)){
+    if(readi(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de))
+
+      break;
+    if(de.inum != 0 && de.snap_flag == 1){
+      printf(" %s\n", de.name);
+    }
+  }
+  iunlockput(dp);
+  return 0;
+}
+
+
+uint64
+sys_snapcreate(void)
+{
+  char path[MAXPATH], name[DIRSIZ];
+  struct inode *dp;
+  struct dirent de;
+  uint off;
+
+  if (argstr(0, path, sizeof(path)) < 0)
+    return -1;
+
+  if ((dp = nameiparent(path, name)) == 0)
+    return -1;
+
+  ilock(dp);
+
+  begin_op();  // Start filesystem transaction
+
+  for (off = 0; off < dp->size; off += sizeof(de)) {
+    if (readi(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de))
+      break;
+
+    if (de.inum == 0)
+      continue;
+
+    if (strncmp(de.name, name, DIRSIZ) == 0) {
+      if (de.snap_flag == 1) {
+        end_op();  // End transaction before returning
+        iunlockput(dp);
+        return 0;
+      }
+      de.snap_flag = 1;
+
+      if (writei(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de)) {
+        end_op();
+        iunlockput(dp);
+        return -1;
+      }
+
+      end_op();  // End transaction after write
+      iunlockput(dp);
+      return 0;
+    }
+  }
+
+  end_op(); // End transaction if file not found or error
+  iunlockput(dp);
+  return -1;
 }

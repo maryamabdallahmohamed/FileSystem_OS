@@ -22,6 +22,11 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+typedef unsigned int uint;
+
+int snapcreate(const char *path);
+int snaplist(const char *path);
+
 
 // ulib.c
 int stat(const char*, struct stat*);
@@ -41,3 +46,5 @@ void *memcpy(void *, const void *, uint);
 // umalloc.c
 void* malloc(uint);
 void free(void*);
+// user/syscall.h
+

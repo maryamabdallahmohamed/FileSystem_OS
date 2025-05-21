@@ -5,6 +5,9 @@
 #define ROOTINO  1   // root i-number
 #define BSIZE 1024  // block size
 
+
+
+
 // Disk layout:
 // [ boot block | super block | log | inode blocks |
 //                                          free bit map | data blocks]
@@ -53,8 +56,10 @@ struct dinode {
 // Directory is a file containing a sequence of dirent structures.
 #define DIRSIZ 14
 
-struct dirent {
-  ushort inum;
-  char name[DIRSIZ];
-};
 
+struct dirent {
+  ushort inum;            // 2 B
+  char   name[DIRSIZ];    // 14 B
+  uchar  snap_flag;       // 1 B  (0 = normal, 1 = snapshot-retained)
+  char   pad[15];         // 15 B  -> total = 32 B, 32 divides 1024
+};
